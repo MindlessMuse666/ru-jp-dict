@@ -1,0 +1,31 @@
+@startuml component_diagram
+
+!theme mars
+
+package "Frontend" as FE #faaac7 {
+    [Browser] as Browser
+    [HTML/CSS/JS] as WebApp
+}
+Browser -- WebApp
+
+package "Backend" as BE #aaddfa {
+    [HTTP Server\n(REST API)] as Server
+    [Business Logic] as Logic
+    [SQLite Repository] as DB
+    [Kafka Producer] as KafkaP
+}
+WebApp -> Server: HTTP/JSON
+Logic --> Server
+Logic --> DB: SQL queries
+Logic --> KafkaP: Async Events
+
+package "Data Storage" as DS #fadaaa {
+    database "SQLite" as SQLite
+    queue "Kafka Broker" as Kafka
+    [Kafka Consumer\n(Logger)] as Logger
+}
+DB -> SQLite
+KafkaP -> Kafka: vocabulary-events
+Kafka -> Logger
+
+@endum
