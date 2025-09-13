@@ -1,5 +1,23 @@
-# Project Stuff
+# Backend
+backend/server
+backend/vendor
+
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+
+# Logs
+*.log
+.env
+
+
+# Business/System analysis 
 /docs/prompt/
 
+
 # IDE
-/.vscode
+.vscode/
+.idea/
