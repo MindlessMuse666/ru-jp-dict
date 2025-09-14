@@ -1,12 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/database"
-	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/models"
+	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/handlers"
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/repository"
 )
 
@@ -14,14 +13,14 @@ func main() {
 	// Инициализация БД
 	db, err := database.InitDB("./vocabulary.db")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to initialize database: ", err)
 	}
 	defer db.Close()
 
 	// Создание репозитория
 	repo := repository.NewVocabularyRepo(db)
 
-	// МОК-ДАННЫЕ ДЛЯ ТЕСТА
+	/* // МОК-ДАННЫЕ ДЛЯ ТЕСТА
 	id, err := repo.Create(models.Vocabulary{
 		Russian:  "книга",
 		Japanese: "木",
@@ -50,14 +49,12 @@ func main() {
 			word.Onyomi,
 			word.Kunyomi,
 		)
-	}
+	} */
 
-	// Конфигурируем маршруты
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("<h1>Привет! Это бэкенд ru-jp-dict!</h1><p>Сервер работает. База данных подключена.</p>"))
-	})
+	// Настройка HTTP-роутинга
+	router := handlers.SetupRouter(repo)
 
-	// Запускаем сервер на порту 8080
-	fmt.Println("Запуск сервера на http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// Запуск сервера
+	log.Println("запуск сервера на http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
