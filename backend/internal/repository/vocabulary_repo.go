@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/models"
@@ -16,7 +17,7 @@ func NewVocabularyRepo(db *sql.DB) *VocabularyRepo {
 	return &VocabularyRepo{db: db}
 }
 
-/* Получить все слова из БД */
+// GET Получает все слова
 func (r *VocabularyRepo) GetAll() ([]models.Vocabulary, error) {
 	query := `
 	SELECT
@@ -59,7 +60,7 @@ func (r *VocabularyRepo) GetAll() ([]models.Vocabulary, error) {
 	return words, nil
 }
 
-/* Добавить новое слово в БД */
+// POST Создает новое слово
 func (r *VocabularyRepo) Create(v models.Vocabulary) (int, error) {
 	query := `
 	INSERT INTO
@@ -81,7 +82,49 @@ func (r *VocabularyRepo) Create(v models.Vocabulary) (int, error) {
 	return int(id), nil
 }
 
-/* Обновляет существующее слово по ID */
+// PATCH Частично обновляет слово по ID
+func (r *VocabularyRepo) PartialUpdate(id int, updates map[string]any) error {
+	if len(updates) == 0 {
+		return fmt.Errorf("no fields to update")
+	}
+
+	// Начало построения SQL-запроса
+	query := "UPDATE vocabulary SET "
+	var setClauses []string
+	var values []interface{}
+
+	// Добавление полей для обновления
+	if russian, ok := updates["russian"]; ok {
+		setClauses = append(setClauses, "russian = ?")
+		values = append(values, russian)
+	}
+	if japanese, ok := updates["japanese"]; ok {
+		setClauses = append(setClauses, "japanese = ?")
+		values = append(values, japanese)
+	}
+	if onyomi, ok := updates["onyomi"]; ok {
+		setClauses = append(setClauses, "onyomi = ?")
+		values = append(values, onyomi)
+	}
+	if kunyomi, ok := updates["kunyomi"]; ok {
+		setClauses = append(setClauses, "kunyomi = ?")
+		values = append(values, kunyomi)
+	}
+
+	// Обновление updated_at
+	setClauses = append(setClauses, "updated_at = ?")
+	values = append(values, time.Now())
+
+	// Добавление условия WHERE
+	query += strings.Join(setClauses, ", ") + " WHERE id = ?"
+	values = append(values, id)
+
+	// Выполнение SQL-запроса
+	_, err := r.db.Exec(query, values...)
+	return err
+}
+
+// PUT Полностью обновляет слово по ID
 func (r *VocabularyRepo) Update(id int, v models.Vocabulary) error {
 	query := `
 	UPDATE vocabulary
@@ -107,7 +150,7 @@ func (r *VocabularyRepo) Update(id int, v models.Vocabulary) error {
 	return err
 }
 
-/* Удаляет слово по ID */
+// DELETE Удаляет слово по ID
 func (r *VocabularyRepo) Delete(id int) error {
 	query := `
 	DELETE FROM vocabulary

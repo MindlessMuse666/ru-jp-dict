@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Russian-Japanese Dictionary API
   description: API для управления личным словарем русско-японских слов
-  version: 1.0.0
+  version: 1.1.0
 servers:
   - url: http://localhost:8080/api/v1
     description: Development server
@@ -48,6 +48,45 @@ paths:
         '500':
           description: Внутренняя ошибка сервера
   /words/{id}:
+    patch:
+      tags:
+        - words
+      summary: Частично обновить слово по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID слова
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                russian:
+                  type: string
+                japanese:
+                  type: string
+                onyomi:
+                  type: string
+                kunyomi:
+                  type: string
+      responses:
+        '200':
+          description: Слово успешно обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Неверный запрос
+        '404':
+          description: Слово не найдено
+        '500':
+          description: Внутренняя ошибка сервера
     put:
       tags:
         - words

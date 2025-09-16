@@ -22,33 +22,32 @@ func main() {
 	// Путь к корню
 	basePath := getRootPath()
 
-	// Создание репозитория
+	// Инициализация репо
 	repo := repository.NewVocabularyRepo(db)
 
 	// Настройка HTTP-роутинга
 	router := handlers.SetupRouter(repo, basePath)
 
 	// Запуск сервера
-	log.Println("server run on http://localhost:8080")
-	log.Println("Swagger UI run on http://localhost:8080/swagger/index.html")
+	log.Println("server run on: http://localhost:8080")
+	log.Println("swagger-ui run on: http://localhost:8080/swagger/index.html")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
 // Получает абсолютный путь к корню проекта
 func getRootPath() string {
-	var basePath string
+	// Попытка найти путь относительно текущей директории
 	if _, err := os.Stat("./backend/docs"); err == nil {
-		basePath = "./backend"
-	} else if _, err := os.Stat("./docs"); err == nil {
-		basePath = "."
-	} else {
-		// Получаем путь к исполняемому файлу
-		execPath, err := os.Executable()
-		if err != nil {
-			log.Fatal("failed to get executable path: ", err)
-		}
-		basePath = filepath.Dir(execPath)
+		return "./backend"
+	}
+	if _, err := os.Stat("./docs"); err == nil {
+		return "."
 	}
 
-	return basePath
+	// Получение пути к исполняемому файлу
+	execPath, err := os.Executable()
+	if err != nil {
+		log.Fatal("failed to get executable path: ", err)
+	}
+	return filepath.Dir(execPath)
 }

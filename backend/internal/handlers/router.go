@@ -25,7 +25,7 @@ func SetupRouter(repo *repository.VocabularyRepo, basePath string) *chi.Mux {
 	router.Use(middleware.Recoverer)
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowCredentials: true,
 		MaxAge:           300,
@@ -35,6 +35,11 @@ func SetupRouter(repo *repository.VocabularyRepo, basePath string) *chi.Mux {
 	swaggerConfig := SwaggerConfig{
 		FilePath: filepath.Join(basePath, "docs", "swagger.yaml"),
 	}
+
+	// Обработчик для корневого пути
+	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/swagger/index.html", http.StatusMovedPermanently)
+	})
 
 	// Настройка маршрутов
 	setupAPIRoutes(router, repo)
@@ -68,7 +73,8 @@ func setupAPIRoutes(router *chi.Mux, repo *repository.VocabularyRepo) {
 		r.Route("/words", func(r chi.Router) {
 			r.Get("/", vocabHandler.GetWords)
 			r.Post("/", vocabHandler.CreateWord)
-			r.Put("/{id}", vocabHandler.UpdateWord)
+			r.Put("/{id}", vocabHandler.PutWord)
+			r.Patch("/{id}", vocabHandler.PatchWord)
 			r.Delete("/{id}", vocabHandler.DeleteWord)
 		})
 	})
