@@ -20,37 +20,6 @@ func main() {
 	// Создание репозитория
 	repo := repository.NewVocabularyRepo(db)
 
-	/* // МОК-ДАННЫЕ ДЛЯ ТЕСТА
-	id, err := repo.Create(models.Vocabulary{
-		Russian:  "книга",
-		Japanese: "木",
-		Onyomi:   "き",
-		Kunyomi:  "モク",
-	})
-
-	if err != nil {
-		log.Fatal("ошибка при создании слова: ", err)
-	}
-
-	fmt.Printf("добавлено слово с ID: %d\n", id)
-
-	words, err := repo.GetAll()
-	if err != nil {
-		log.Fatal("ошибка при получении слов: ", err)
-	}
-
-	fmt.Println("слова в базе:")
-	for _, word := range words {
-		fmt.Printf(
-			"%d: %s - %s (On: %s, Kun: %s)\n",
-			word.ID,
-			word.Russian,
-			word.Japanese,
-			word.Onyomi,
-			word.Kunyomi,
-		)
-	} */
-
 	// Настройка HTTP-роутинга
 	router := handlers.SetupRouter(repo)
 

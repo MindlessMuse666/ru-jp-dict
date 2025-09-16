@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/models"
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/repository"
@@ -27,7 +28,7 @@ func (h *VocabularyHandler) GetWords(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(words)
 }
@@ -56,7 +57,7 @@ func (h *VocabularyHandler) CreateWord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// формирование ответа (возвращаем сообщение с ID)
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	response := map[string]any{
 		"id":      id,
@@ -87,7 +88,7 @@ func (h *VocabularyHandler) UpdateWord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	responce := map[string]string{"message": "word updated successfully"}
 	json.NewEncoder(w).Encode(responce)
@@ -104,11 +105,15 @@ func (h *VocabularyHandler) DeleteWord(w http.ResponseWriter, r *http.Request) {
 
 	err = h.repo.Delete(id)
 	if err != nil {
-		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusInternalServerError)
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusNotFound)
+		} else {
+			http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusInternalServerError)
+		}
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	responce := map[string]string{"message": "word deleted successfully"}
 	json.NewEncoder(w).Encode(responce)

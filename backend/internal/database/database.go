@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"log"
 
-	_ "modernc.org/sqlite"
+	"github.com/glebarez/sqlite"
 )
 
+/* Подключение к SQLite и создание таблиц, если они не существуют */
 func InitDB(dataSourceName string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", dataSourceName)
+	db, err := sql.Open(sqlite.DriverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}

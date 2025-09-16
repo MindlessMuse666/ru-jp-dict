@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/models"
@@ -15,36 +16,13 @@ func NewVocabularyRepo(db *sql.DB) *VocabularyRepo {
 	return &VocabularyRepo{db: db}
 }
 
-/* Добавить новое слово в БД */
-func (r *VocabularyRepo) Create(v models.Vocabulary) (int, error) {
-	query := `
-	INSERT INTO vocabulary (
-		russian,
-		japanese,
-		onyomi,
-		kunyomi
-	)
-	VALUES (?, ?, ?, ?);
-	`
-
-	result, err := r.db.Exec(query, v.Russian, v.Japanese, v.Onyomi, v.Kunyomi)
-	if err != nil {
-		return 0, err
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return int(id), nil
-}
-
 /* Получить все слова из БД */
 func (r *VocabularyRepo) GetAll() ([]models.Vocabulary, error) {
 	query := `
-	SELECT *
-	FROM vocabulary
+	SELECT
+		*
+	FROM
+		vocabulary
 	`
 
 	rows, err := r.db.Query(query)
@@ -81,17 +59,40 @@ func (r *VocabularyRepo) GetAll() ([]models.Vocabulary, error) {
 	return words, nil
 }
 
+/* Добавить новое слово в БД */
+func (r *VocabularyRepo) Create(v models.Vocabulary) (int, error) {
+	query := `
+	INSERT INTO
+		vocabulary (russian, japanese, onyomi, kunyomi)
+	VALUES
+		(?, ?, ?, ?);
+	`
+
+	result, err := r.db.Exec(query, v.Russian, v.Japanese, v.Onyomi, v.Kunyomi)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
+}
+
 /* Обновляет существующее слово по ID */
 func (r *VocabularyRepo) Update(id int, v models.Vocabulary) error {
 	query := `
 	UPDATE vocabulary
 	SET
-		russian=?,
-		japanese=?,
-		onyomi=?,
-		kunyomi=?,
-		updated_at=?
-	WHERE id=?
+		russian = ?,
+		japanese = ?,
+		onyomi = ?,
+		kunyomi = ?,
+		updated_at = ?
+	WHERE
+		id = ?
 	`
 
 	_, err := r.db.Exec(
@@ -110,9 +111,25 @@ func (r *VocabularyRepo) Update(id int, v models.Vocabulary) error {
 func (r *VocabularyRepo) Delete(id int) error {
 	query := `
 	DELETE FROM vocabulary
-	WHERE id=?
+	WHERE
+		id = ?
 	`
 
-	_, err := r.db.Exec(query, id)
-	return err
+	result, err := r.db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	// Проверка, сколько строк было затронуто
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	// Выбрасываем ошибку, если ни одна строка не была удалена
+	if rowsAffected == 0 {
+		return fmt.Errorf("слово с id=%d не найдено", id)
+	}
+
+	return nil
 }

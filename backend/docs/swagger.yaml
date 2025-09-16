@@ -1,0 +1,156 @@
+openapi: 3.0.3
+info:
+  title: Russian-Japanese Dictionary API
+  description: API для управления личным словарем русско-японских слов
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+tags:
+  - name: words
+    description: Операции со словами
+paths:
+  /words:
+    get:
+      tags:
+        - words
+      summary: Получить все слова
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Word'
+        '500':
+          description: Внутренняя ошибка сервера
+    post:
+      tags:
+        - words
+      summary: Добавить новое слово
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WordInput'
+      responses:
+        '201':
+          description: Слово успешно создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateWordResponse'
+        '400':
+          description: Неверный запрос
+        '500':
+          description: Внутренняя ошибка сервера
+  /words/{id}:
+    put:
+      tags:
+        - words
+      summary: Обновить слово по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID слова
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WordInput'
+      responses:
+        '200':
+          description: Слово успешно обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Неверный запрос
+        '404':
+          description: Слово не найдено
+        '500':
+          description: Внутренняя ошибка сервера
+    delete:
+      tags:
+        - words
+      summary: Удалить слово по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID слова
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Слово успешно удалено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Слово не найдено
+        '500':
+          description: Внутренняя ошибка сервера
+components:
+  schemas:
+    Word:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор слова
+        russian:
+          type: string
+          description: Слово или фраза на русском
+        japanese:
+          type: string
+          description: Слово или фраза на японском (кандзи/кана)
+        onyomi:
+          type: string
+          description: Онъёми (китайское чтение)
+        kunyomi:
+          type: string
+          description: Кунъёми (японское чтение)
+        created_at:
+          type: string
+          format: date-time
+          description: Дата и время создания записи
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата и время последнего обновления записи
+    WordInput:
+      type: object
+      required:
+        - russian
+        - japanese
+      properties:
+        russian:
+          type: string
+        japanese:
+          type: string
+        onyomi:
+          type: string
+        kunyomi:
+          type: string
+    CreateWordResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        message:
+          type: string
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
