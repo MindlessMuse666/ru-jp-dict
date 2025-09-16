@@ -2,22 +2,24 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/kafka"
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/models"
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/repository"
 	"github.com/go-chi/chi/v5"
 )
 
-// Структура репо, которая предоставляет методы-обработчики
 type VocabularyHandler struct {
-	repo *repository.VocabularyRepo
+	repo     *repository.VocabularyRepo
+	producer *kafka.Producer
 }
 
-func NewVocabularyHandler(repo *repository.VocabularyRepo) *VocabularyHandler {
-	return &VocabularyHandler{repo: repo}
+func NewVocabularyHandler(repo *repository.VocabularyRepo, producer *kafka.Producer) *VocabularyHandler {
+	return &VocabularyHandler{repo: repo, producer: producer}
 }
 
 // GET /api/v1/words - возвращает все слова
@@ -37,26 +39,37 @@ func (h *VocabularyHandler) GetWords(w http.ResponseWriter, r *http.Request) {
 func (h *VocabularyHandler) CreateWord(w http.ResponseWriter, r *http.Request) {
 	var word models.Vocabulary
 
-	// мап json в структуру
+	// Мап json в структуру
 	if err := json.NewDecoder(r.Body).Decode(&word); err != nil {
 		http.Error(w, `{"error": "invalid json"}`, http.StatusBadRequest)
 		return
 	}
 
-	// валидация: обязательные поля не пустые
+	// Валидация: обязательные поля не пустые
 	if word.Russian == "" || word.Japanese == "" {
 		http.Error(w, `{"error": "fields 'russian' and 'japanese' are required"}`, http.StatusBadRequest)
 		return
 	}
 
-	// передача данных в репо для создания записи в БД
+	// Передача данных в репо для создания записи в БД
 	id, err := h.repo.Create(word)
 	if err != nil {
 		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
 
-	// формирование ответа (возвращаем сообщение с ID)
+	// Отправка созданного слова в Kafka
+	createdWord, err := h.repo.GetByID(id)
+	if err != nil {
+		log.Printf("failed to get created word: %v", err)
+	} else {
+		// Отправка события
+		if err := h.producer.SendEvent("word_created", createdWord); err != nil {
+			log.Printf("failed to send Kafka event: %v", err)
+		}
+	}
+
+	// Формирование ответа (возвращаем сообщение с ID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	response := map[string]any{
@@ -88,7 +101,7 @@ func (h *VocabularyHandler) PatchWord(w http.ResponseWriter, r *http.Request) {
 		"russian":  true,
 		"japanese": true,
 		"onyomi":   true,
-		"kunoymi":  true,
+		"kunyomi":  true,
 	}
 
 	for field := range updates {
@@ -113,6 +126,17 @@ func (h *VocabularyHandler) PatchWord(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
+	}
+
+	// Отправка обновленного слова в Kafka
+	patchedWord, err := h.repo.GetByID(id)
+	if err != nil {
+		log.Printf("failed to get updated word: %v", err)
+	} else {
+		// Отправка события
+		if err := h.producer.SendEvent("word_updated", patchedWord); err != nil {
+			log.Printf("failed to send Kafka event: %v", err)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -143,6 +167,17 @@ func (h *VocabularyHandler) PutWord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Отправка полностью обновленного слова в Kafka
+	putWord, err := h.repo.GetByID(id)
+	if err != nil {
+		log.Printf("failed to get updated word: %v", err)
+	} else {
+		// Отправка события
+		if err := h.producer.SendEvent("word_updated", putWord); err != nil {
+			log.Printf("failed to send Kafka event: %v", err)
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	responce := map[string]string{"message": "word updated successfully"}
@@ -156,6 +191,17 @@ func (h *VocabularyHandler) DeleteWord(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, `{"error": "invalid id"}`, http.StatusBadRequest)
 		return
+	}
+
+	// Отправка удаленного слова в Kafka
+	deletedWord, err := h.repo.GetByID(id)
+	if err != nil {
+		log.Printf("failed to get deleted word: %v", err)
+	} else {
+		// Отправка события
+		if err := h.producer.SendEvent("word_deleted", deletedWord); err != nil {
+			log.Printf("failed to send Kafka event: %v", err)
+		}
 	}
 
 	err = h.repo.Delete(id)

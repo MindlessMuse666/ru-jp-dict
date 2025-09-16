@@ -6,8 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/config"
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/database"
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/handlers"
+	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/kafka"
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/repository"
 )
 
@@ -19,6 +21,11 @@ func main() {
 	}
 	defer db.Close()
 
+	// Инициализация Kafka
+	kafkaConfig := config.NewKafkaConfig()
+	producer := kafka.NewProducer(kafkaConfig.Broker, kafkaConfig.Topic)
+	defer producer.Close()
+
 	// Путь к корню
 	basePath := getRootPath()
 
@@ -26,7 +33,7 @@ func main() {
 	repo := repository.NewVocabularyRepo(db)
 
 	// Настройка HTTP-роутинга
-	router := handlers.SetupRouter(repo, basePath)
+	router := handlers.SetupRouter(repo, producer, basePath)
 
 	// Запуск сервера
 	log.Println("server run on: http://localhost:8080")

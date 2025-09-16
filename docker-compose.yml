@@ -22,6 +22,28 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CREATE_TOPICS: "vocabulary-events:1:1" 
+    networks:
+      - kafka-net
+  
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - KAFKA_TOPIC=vocabulary-events
+    depends_on:
+      - kafka
+    networks:
+      - kafka-net
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
     networks:
       - kafka-net
 

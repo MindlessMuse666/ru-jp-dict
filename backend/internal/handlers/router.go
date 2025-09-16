@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/kafka"
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/repository"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -17,7 +18,7 @@ type SwaggerConfig struct {
 }
 
 // Создает и настраивает маршрутизатор
-func SetupRouter(repo *repository.VocabularyRepo, basePath string) *chi.Mux {
+func SetupRouter(repo *repository.VocabularyRepo, producer *kafka.Producer, basePath string) *chi.Mux {
 	router := chi.NewRouter()
 
 	// Middleware
@@ -42,7 +43,7 @@ func SetupRouter(repo *repository.VocabularyRepo, basePath string) *chi.Mux {
 	})
 
 	// Настройка маршрутов
-	setupAPIRoutes(router, repo)
+	setupAPIRoutes(router, repo, producer)
 	setupSwaggerRoutes(router, swaggerConfig)
 
 	return router
@@ -66,8 +67,8 @@ func setupSwaggerRoutes(router *chi.Mux, config SwaggerConfig) {
 }
 
 // Настраивает маршруты API
-func setupAPIRoutes(router *chi.Mux, repo *repository.VocabularyRepo) {
-	vocabHandler := NewVocabularyHandler(repo)
+func setupAPIRoutes(router *chi.Mux, repo *repository.VocabularyRepo, producer *kafka.Producer) {
+	vocabHandler := NewVocabularyHandler(repo, producer)
 
 	router.Route("/api/v1", func(r chi.Router) {
 		r.Route("/words", func(r chi.Router) {

@@ -17,6 +17,35 @@ func NewVocabularyRepo(db *sql.DB) *VocabularyRepo {
 	return &VocabularyRepo{db: db}
 }
 
+// GET Получает слово по ID
+func (r *VocabularyRepo) GetByID(id int) (models.Vocabulary, error) {
+	query := `
+	SELECT
+		id, russian, japanese, onyomi, kunyomi, created_at, updated_at
+	FROM
+        vocabulary
+    WHERE
+        id = ?
+	`
+
+	var word models.Vocabulary
+	err := r.db.QueryRow(query, id).Scan(
+		&word.ID,
+		&word.Russian,
+		&word.Japanese,
+		&word.Onyomi,
+		&word.Kunyomi,
+		&word.CreatedAt,
+		&word.UpdatedAt,
+	)
+
+	if err != nil {
+		return models.Vocabulary{}, err
+	}
+
+	return word, nil
+}
+
 // GET Получает все слова
 func (r *VocabularyRepo) GetAll() ([]models.Vocabulary, error) {
 	query := `
