@@ -4,6 +4,8 @@ go 1.24.6
 
 require modernc.org/sqlite v1.38.2 // indirect
 
+require github.com/go-chi/cors v1.2.2
+
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect

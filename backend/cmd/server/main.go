@@ -19,7 +19,7 @@ func main() {
 	}
 	defer db.Close()
 
-	// Абсолютный путь к корню
+	// Путь к корню
 	basePath := getRootPath()
 
 	// Создание репозитория
@@ -29,16 +29,26 @@ func main() {
 	router := handlers.SetupRouter(repo, basePath)
 
 	// Запуск сервера
-	log.Println("start server on http://localhost:8080")
+	log.Println("server run on http://localhost:8080")
+	log.Println("Swagger UI run on http://localhost:8080/swagger/index.html")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
 // Получает абсолютный путь к корню проекта
 func getRootPath() string {
-	execPath, err := os.Executable()
-	if err != nil {
-		log.Fatal("failed to get executable path: ", err)
+	var basePath string
+	if _, err := os.Stat("./backend/docs"); err == nil {
+		basePath = "./backend"
+	} else if _, err := os.Stat("./docs"); err == nil {
+		basePath = "."
+	} else {
+		// Получаем путь к исполняемому файлу
+		execPath, err := os.Executable()
+		if err != nil {
+			log.Fatal("failed to get executable path: ", err)
+		}
+		basePath = filepath.Dir(execPath)
 	}
 
-	return filepath.Dir(execPath)
+	return basePath
 }
