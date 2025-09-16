@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 	"path/filepath"
-	"runtime"
 
 	"github.com/MindlessMuse666/ru-jp-dict/backend/internal/repository"
 	"github.com/go-chi/chi/v5"
@@ -11,45 +10,66 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-/* Настраивает HTTP-маршруты и возвращает роутер */
-func SetupRouter(repo *repository.VocabularyRepo) *chi.Mux {
-	r := chi.NewRouter()
+// Конфигурация Swagger UI
+type SwaggerConfig struct {
+	FilePath string // Абсолютный путь к файлу swagger.yaml
+	URLPath  string // URL-путь для доступа к спецификации
+}
 
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+// Создает и настраивает маршрутизатор
+func SetupRouter(repo *repository.VocabularyRepo, basePath string) *chi.Mux {
+	router := chi.NewRouter()
 
-	// Абсолютный путь к swagger.yaml
-	_, filename, _, _ := runtime.Caller(0)
-	basepath := filepath.Dir(filepath.Dir(filepath.Dir(filename)))
-	swaggerPath := filepath.Join(basepath, "docs", "swagger.yaml")
+	// Middleware
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
 
-	// Обслуживание спецификации
-	r.Get("/swagger/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, swaggerPath)
+	// Конфигурация Swagger
+	swaggerConfig := SwaggerConfig{
+		FilePath: filepath.Join(basePath, "docs", "swagger.yaml"),
+		URLPath:  "/swagger/openapi.yaml",
+	}
+
+	// Настройка маршрутов
+	setupSwaggerRoutes(router, swaggerConfig)
+	setupAPIRoutes(router, repo)
+
+	return router
+}
+
+// Настраивает марщруты Swagger UI
+func setupSwaggerRoutes(router *chi.Mux, config SwaggerConfig) {
+	// Обслуживаем спецификацию OpenApi
+	router.Get(config.URLPath, func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, config.FilePath)
 	})
 
+	// Настраиваем Swagger UI
 	swaggerHandler := httpSwagger.Handler(
-		httpSwagger.URL("/swagger/openapi.yaml"),
+		httpSwagger.URL(config.URLPath),
 	)
 
-	r.Get("/swagger/*", func(w http.ResponseWriter, r *http.Request) {
+	// Обрабатываем все запросы к Swagger UI
+	router.Get("/swagger/*", func(w http.ResponseWriter, r *http.Request) {
+		// Редирект запроса к /swagger/doc.json на наш YAML
 		if r.URL.Path == "/swagger/doc.json" {
-			http.ServeFile(w, r, swaggerPath)
+			http.ServeFile(w, r, config.FilePath)
 			return
 		}
 		swaggerHandler.ServeHTTP(w, r)
 	})
+}
 
+// Настраивает маршруты API
+func setupAPIRoutes(router *chi.Mux, repo *repository.VocabularyRepo) {
 	vocabHandler := NewVocabularyHandler(repo)
 
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Route("/words", func(r chi.Router) {
-			r.Get("/", vocabHandler.GetWords)
-			r.Post("/", vocabHandler.CreateWord)
-			r.Put("/{id}", vocabHandler.UpdateWord)
-			r.Delete("/{id}", vocabHandler.DeleteWord)
+	router.Route("/api/v1", func(r chi.Router) {
+		router.Route("/words", func(r chi.Router) {
+			router.Get("/", vocabHandler.GetWords)
+			router.Post("/", vocabHandler.CreateWord)
+			router.Put("/{id}", vocabHandler.UpdateWord)
+			router.Delete("/{id}", vocabHandler.DeleteWord)
 		})
 	})
-
-	return r
 }
